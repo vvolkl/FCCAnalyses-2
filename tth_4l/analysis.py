@@ -33,13 +33,12 @@ compb2 = cfg.Component(
 
 selectedComponents = [
                 sample.mgp8_pp_tth01j_5f_hllll,
-                sample.mgp8_pp_ttv01j_5f,
-                #mgp8_pp_wwww_4f,
+                sample.mgp8_pp_tt2l_4f,
                       ]
 
 
 sample.mgp8_pp_tth01j_5f_hllll.splitFactor = 10
-sample.mgp8_pp_ttv01j_5f.splitFactor = 10
+sample.mgp8_pp_tt2l_4f.splitFactor = 10
 
 # to run locally
 #selectedComponents = [comps, compb2]
