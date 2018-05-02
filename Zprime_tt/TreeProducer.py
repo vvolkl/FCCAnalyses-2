@@ -4,6 +4,7 @@ from heppy.statistics.tree import Tree
 from heppy.analyzers.ntuple import *
 from heppy.particles.tlv.resonance import Resonance2 as Resonance
 from heppy.particles.tlv.particle import Particle
+from heppy.FCChhAnalyses.analyzers.TRFbtag import *
 
 import math
 import ROOT
@@ -26,6 +27,9 @@ class TreeProducer(Analyzer):
         self.tree = Tree( 'events', '')
         
         self.tree.var('weight', float)
+        self.tree.var('weight_1tagex', float)
+        self.tree.var('weight_2tagex', float)
+        self.tree.var('weight_1tagin', float)
         self.tree.var('missingET', float)
         self.tree.var('numberOfElectrons', int)
         self.tree.var('numberOfMuons', int)
@@ -164,6 +168,7 @@ class TreeProducer(Analyzer):
         jets_trk02 = getattr(event, self.cfg_ana.jets_trk02_1000)
         jets_pf02 = getattr(event, self.cfg_ana.jets_pf02_1500)
         jets_pf04 = getattr(event, self.cfg_ana.jets_pf04_1000)
+        jets_pf04_pdg = event.jets_pf04_1000_pdg
         jets_pf08 = getattr(event, self.cfg_ana.jets_pf08_1500)
 
         jets_pf04_1500 = getattr(event, self.cfg_ana.jets_pf04_1500)
@@ -266,7 +271,25 @@ class TreeProducer(Analyzer):
             if Jet2_trk02_dR_pf04 < 0.3:
                 pdg2 = 5
 
-
+            # TRF / truth b-tagging -> need at least 2 jets_pf04
+            use_DELPHES=False
+            weight_1tagex=0.
+            weight_2tagex=0.
+            jet=[]
+            ipdg=0
+            for i in range(len(jets_pf04)):
+              if use_DELPHES==True:
+                ipdg = jets_pf04[i].tags['flav']
+                if ipdg!=4 and ipdg!=5 : ipdg=0
+              else:
+                ipdg = jets_pf04_pdg[i].flavour
+              jet.append([jets_pf04[i],ipdg])
+            if (len(jet)>0): weight_1tagex=getNbTagEx(1,jet,2)
+            if (len(jet)>1): weight_2tagex=getNbTagEx(2,jet,2)
+            weight_1tagin=weight_1tagex+weight_2tagex
+            self.tree.fill('weight_1tagex', weight_1tagex)
+            self.tree.fill('weight_2tagex', weight_2tagex)
+            self.tree.fill('weight_1tagin', weight_1tagin)
 
             #MATCHING PF02 and trk02 for CORRECTION
             Jet1_trk02_dR_pf02 = 999
