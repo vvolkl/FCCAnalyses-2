@@ -49,6 +49,8 @@ https://indico.cern.ch/event/687515/contributions/2824372/attachments/1575694/24
 - [x] `mgp8_pp_tt2l_4f`:  6,040,000
 - [ ] `mgp8_pp_tt4l_4f`: 0
 
+* tt2l passes a lot of the cuts, not many more events needed
+
 * higgs to four leptons not in tt associated production:
 
 - [ ] `mgp8_pp_h012j_5f_hllll`:  4,128,187
