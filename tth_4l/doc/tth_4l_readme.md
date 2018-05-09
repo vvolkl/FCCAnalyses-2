@@ -51,5 +51,5 @@ https://indico.cern.ch/event/687515/contributions/2824372/attachments/1575694/24
 
 * higgs to four leptons not in tt associated production:
 
-- [ ] `mgp8_pp_h012j_5f_HT_0_100_hllll`:  44,327
-- [ ] `mgp8_pp_vh012j_5f_HT_0_300_hllll`: 66,488
+- [ ] `mgp8_pp_h012j_5f_hllll`:  4,128,187
+- [ ] `mgp8_pp_vh012j_5f_hllll`:  6,778,919
