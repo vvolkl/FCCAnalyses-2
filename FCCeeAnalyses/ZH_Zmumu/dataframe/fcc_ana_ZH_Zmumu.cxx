@@ -1,4 +1,8 @@
 
+#include <functional>
+
+using namespace std::placeholders; 
+
 #include <ROOT/RDataFrame.hxx>
 #include "TLorentzVector.h"
 #include <TSystem.h>
@@ -106,7 +110,7 @@ auto selectJetsLights_add_to_dataframe( ROOT::RDataFrame& df, std::string input_
   return df.Define(output_column, selectJetsLights, {input_column, input_column_btags});
 }
 
-std::vector<fcc::JetData> noMatchJets (std::vector<fcc::JetData> in, std::vector<fcc::ParticleData> matchParticles) {
+std::vector<fcc::JetData> noMatchJets (std::vector<fcc::JetData> in, std::vector<fcc::ParticleData> matchParticles, float max_rel_iso) {
   std::vector<fcc::JetData> result;
   result.reserve(in.size());
   for (size_t i = 0; i < in.size(); ++i) {
@@ -114,7 +118,7 @@ std::vector<fcc::JetData> noMatchJets (std::vector<fcc::JetData> in, std::vector
     bool matched = false;
     for (size_t j = 0; j < matchParticles.size(); ++j) {
       auto & matchCandidate = matchParticles[j];
-      if (deltaR(p.core.p4, matchCandidate.core.p4) < 0.2) {
+      if (deltaR(p.core.p4, matchCandidate.core.p4) < max_rel_iso) {
         matched = true;
       }
     }
@@ -125,8 +129,11 @@ std::vector<fcc::JetData> noMatchJets (std::vector<fcc::JetData> in, std::vector
   return result;
 }
 
-auto noMatchJets_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string input_column_matchParticles, std::string output_column) {
-  return df.Define(output_column, noMatchJets, {input_column, input_column_matchParticles});
+
+auto noMatchJets_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string input_column_matchParticles, std::string output_column, float  max_rel_iso) {
+
+  auto noMatchJets_02 =  [&] (std::vector<fcc::JetData> in, std::vector<fcc::ParticleData> matchParticles) {return noMatchJets(in, matchParticles, max_rel_iso);};
+  return df.Define(output_column, noMatchJets_02 , {input_column, input_column_matchParticles});
 }
 
 std::vector<float> get_pt(std::vector<fcc::ParticleData> in){
@@ -275,8 +282,9 @@ int get_njets2(std::vector<fcc::JetData> x, std::vector<fcc::JetData> y) {
 
 auto add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string output_column) {
   return df.Define(output_column, get_njets2, {input_column});
-
 }
+
+
 
 
 
@@ -319,6 +327,7 @@ int main(int argc, char* argv[]){
 
 
 
+  auto noMatchJets_02 =  [&] (std::vector<fcc::JetData> in, std::vector<fcc::ParticleData> matchParticles) {return noMatchJets(in, matchParticles, 0.2);};
 
 
 
@@ -336,8 +345,8 @@ int main(int argc, char* argv[]){
                       .Define("higgs_pt", get_pt, {"higgs"})
                       .Define("jets_30_bs", selectJetsBs, {"pfjets", "pfbTags"})
                       .Define("jets_30_lights", selectJetsLights, {"pfjets", "pfbTags"})
-                      .Define("selected_bs", noMatchJets, {"jets_30_bs", "selected_leptons"})
-                      .Define("selected_lights", noMatchJets, {"jets_30_lights", "selected_leptons"})
+                      .Define("selected_bs", noMatchJets_02, {"jets_30_bs", "selected_leptons"})
+                      .Define("selected_lights", noMatchJets_02, {"jets_30_lights", "selected_leptons"})
                       .Define("nbjets", get_njets, {"selected_bs"})
                       .Define("njets", get_njets2, {"selected_bs", "selected_lights"})
                       .Define("weight", id_float, {"mcEventWeights"})
