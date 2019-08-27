@@ -125,12 +125,20 @@ std::vector<fcc::JetData> noMatchJets (std::vector<fcc::JetData> in, std::vector
   return result;
 }
 
+auto noMatchJets_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string input_column_matchParticles, std::string output_column) {
+  return df.Define(output_column, noMatchJets, {input_column, input_column_matchParticles});
+}
+
 std::vector<float> get_pt(std::vector<fcc::ParticleData> in){
  std::vector<float> result;
  for (int i = 0; i < in.size(); ++i) {
    result.push_back(sqrt(in[i].core.p4.px * in[i].core.p4.px + in[i].core.p4.py * in[i].core.p4.py));
  }
  return result;
+}
+
+auto get_pt_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string output_column) {
+  return df.Define(output_column, get_pt, {input_column});
 }
 
 
@@ -140,6 +148,10 @@ std::vector<fcc::ParticleData> mergeElectronsAndMuons(std::vector<fcc::ParticleD
   result.insert( result.end(), x.begin(), x.end() );
   result.insert( result.end(), y.begin(), y.end() );
   return result;
+}
+
+auto Merger_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string input_column2, std::string output_column) {
+  return df.Define(output_column, mergeElectronsAndMuons, {input_column, input_column2});
 }
 
 ///@todo: comment!
@@ -170,6 +182,10 @@ std::vector<fcc::ParticleData> LeptonicZBuilder(std::vector<fcc::ParticleData> l
     } while (std::next_permutation(v.begin(), v.end()));
   }
   return result;
+}
+
+auto LeptonicZBuilder_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string output_column) {
+  return df.Define(output_column, LeptonicZBuilder, {input_column});
 }
 
 /// @todo: refactor to remove code duplication with leptonicZBuilder
@@ -210,6 +226,10 @@ std::vector<fcc::ParticleData> LeptonicHiggsBuilder(std::vector<fcc::ParticleDat
   }
 }
 
+auto LeptonicHiggsBuilder_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string output_column) {
+  return df.Define(output_column, LeptonicHiggsBuilder, {input_column});
+}
+
 std::vector<float> id_float(std::vector<fcc::FloatValueData> x) {
   std::vector<float> result;
   for (auto & p: x) {
@@ -226,14 +246,26 @@ std::vector<float> get_mass(std::vector<fcc::ParticleData> x) {
   return result;
 }
 
+auto get_mass_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string output_column) {
+  return df.Define(output_column, get_mass, {input_column});
+}
+
 int get_nparticles(std::vector<fcc::ParticleData> x) {
   int result =  x.size();
   return result;
 }
 
+auto get_nparticles_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string output_column) {
+  return df.Define(output_column, get_nparticles, {input_column});
+}
+
 int get_njets(std::vector<fcc::JetData> x) {
   int result =  x.size();
   return result;
+}
+
+auto get_njets_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string output_column) {
+  return df.Define(output_column, get_njets, {input_column});
 }
 
 int get_njets2(std::vector<fcc::JetData> x, std::vector<fcc::JetData> y) {
