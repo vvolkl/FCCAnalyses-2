@@ -54,7 +54,7 @@ auto recoil_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, st
 std::vector<fcc::ParticleData>  selectLeptons (std::vector<fcc::ParticleData> in, std::vector<fcc::TaggedParticleData> iso) {
   std::vector<fcc::ParticleData> result;
   result.reserve(in.size());
-  for (int i = 0; i < in.size(); ++i) {
+  for (size_t i = 0; i < in.size(); ++i) {
     auto & p = in[i];
     if (std::sqrt(std::pow(p.core.p4.px,2) + std::pow(p.core.p4.py,2)) > 20) {
       if (iso[i].tag  < 0.4) {
@@ -109,10 +109,10 @@ auto selectJetsLights_add_to_dataframe( ROOT::RDataFrame& df, std::string input_
 std::vector<fcc::JetData> noMatchJets (std::vector<fcc::JetData> in, std::vector<fcc::ParticleData> matchParticles) {
   std::vector<fcc::JetData> result;
   result.reserve(in.size());
-  for (int i = 0; i < in.size(); ++i) {
+  for (size_t i = 0; i < in.size(); ++i) {
     auto & p = in[i];
     bool matched = false;
-    for (int j = 0; j < matchParticles.size(); ++j) {
+    for (size_t j = 0; j < matchParticles.size(); ++j) {
       auto & matchCandidate = matchParticles[j];
       if (deltaR(p.core.p4, matchCandidate.core.p4) < 0.2) {
         matched = true;
@@ -131,7 +131,7 @@ auto noMatchJets_add_to_dataframe( ROOT::RDataFrame& df, std::string input_colum
 
 std::vector<float> get_pt(std::vector<fcc::ParticleData> in){
  std::vector<float> result;
- for (int i = 0; i < in.size(); ++i) {
+ for (size_t i = 0; i < in.size(); ++i) {
    result.push_back(sqrt(in[i].core.p4.px * in[i].core.p4.px + in[i].core.p4.py * in[i].core.p4.py));
  }
  return result;
