@@ -1,2 +1,3 @@
-class TreeProducer():
-  pass
+class TreeProducer:
+  def __init__(*args, **kwargs):
+    pass

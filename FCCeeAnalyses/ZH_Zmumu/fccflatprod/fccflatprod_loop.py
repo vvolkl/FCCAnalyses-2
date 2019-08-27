@@ -14,3 +14,5 @@ sys.modules["FCCeeAnalyses"] = __import__("fccflatprod")
 if __name__ == "__main__":
   execfile(sys.argv[1])
 
+print [a for a in sequence.the_sequence]
+
