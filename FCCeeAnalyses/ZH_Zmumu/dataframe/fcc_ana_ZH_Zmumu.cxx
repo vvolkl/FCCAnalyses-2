@@ -65,7 +65,7 @@ std::vector<fcc::ParticleData>  selectLeptons (std::vector<fcc::ParticleData> in
   return result;
 }
 
-auto select_leptons_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string input_column_iso, std::string output_column) {
+ROOT::RDF::RNode select_leptons_add_to_dataframe( ROOT::RDF::RInterface<ROOT::Detail::RDF::RLoopManager, void> df, std::string input_column, std::string input_column_iso, std::string output_column) {
   return df.Define(output_column, selectLeptons, {input_column, input_column_iso});
 }
 

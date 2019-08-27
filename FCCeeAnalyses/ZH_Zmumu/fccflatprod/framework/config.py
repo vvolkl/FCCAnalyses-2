@@ -1,6 +1,7 @@
 class Component():
     def __init__(self, name, files, tree_name=None, triggers=None, **kwargs):
-      print name
+      self.name = name
+      self.files = files
 
 class Analyzer:
   def __init__(self, the_analyzer, *args, **kwargs):
