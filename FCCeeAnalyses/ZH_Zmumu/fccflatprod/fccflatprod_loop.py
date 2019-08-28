@@ -23,9 +23,22 @@ print [a for a in sequence.the_sequence]
 
 
 from ROOT import select_leptons_add_to_dataframe 
+from ROOT import recoil_add_to_dataframe 
+from ROOT import initial_dataframe_convert
+
 
 
 df = ROOT.RDataFrame("events", comp.files[0])
 
-dff = select_leptons_add_to_dataframe(df, "muons", "muonITags", "selected_muons")
-print dff.GetDefinedColumnNames()
+
+df = initial_dataframe_convert(df)
+
+
+
+
+df = select_leptons_add_to_dataframe(df, "muons", "muonITags", "selected_muons")
+print df
+
+df = recoil_add_to_dataframe(df, "muons",  "recoil")
+print df
+print df.GetDefinedColumnNames()

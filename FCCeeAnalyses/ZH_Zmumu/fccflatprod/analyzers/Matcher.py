@@ -3,7 +3,7 @@ import ROOT
 from ROOT import noMatchJets_add_to_dataframe
 
 class Matcher:
-  def __init__(*args, **kwargs):
+  def __init__(self, *args, **kwargs):
     self.delta_r = kwargs["delta_r"]
     self.match_particles = kwargs["match_particles"]
     self.particles = kwargs["particles"]

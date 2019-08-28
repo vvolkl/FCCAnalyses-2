@@ -18,6 +18,9 @@ using namespace std::placeholders;
 
 auto _m = fcc::ParticleData();
 
+typedef ROOT::RDF::RInterface<ROOT::Detail::RDF::RLoopManager, void>  dataframe_arg_type;
+typedef ROOT::RDF::RInterface<ROOT::Detail::RDF::RNodeBase,void> dataframe_arg_type2;
+
 
 
 double deltaR(fcc::LorentzVector v1, fcc::LorentzVector v2) {
@@ -34,43 +37,72 @@ double deltaR(fcc::LorentzVector v1, fcc::LorentzVector v2) {
 }
 
 
-std::vector<fcc::LorentzVector> recoil (std::vector<fcc::ParticleData> in) {
-    std::vector<fcc::LorentzVector> result;
-    auto recoil_p4 = TLorentzVector(0, 0, 0, 240.0);
-    for (auto & v1: in) {
-      TLorentzVector tv1;
-      tv1.SetXYZM(v1.core.p4.px, v1.core.p4.py, v1.core.p4.pz, v1.core.p4.mass);
-      recoil_p4 -= tv1;
-    }
-    auto recoil_fcc = fcc::LorentzVector();
-    recoil_fcc.px = recoil_p4.Px();
-    recoil_fcc.py = recoil_p4.Py();
-    recoil_fcc.pz = recoil_p4.Pz();
-    recoil_fcc.mass = recoil_p4.M();
-    result.push_back(recoil_fcc);
-    return result;
+struct recoil {
+
+  recoil(float arg_sqrts) : m_sqrts(arg_sqrts) {};
+
+  float m_sqrts = 240.0;
+
+  std::vector<fcc::LorentzVector> operator() (std::vector<fcc::ParticleData> in) {
+      std::vector<fcc::LorentzVector> result;
+      auto recoil_p4 = TLorentzVector(0, 0, 0, m_sqrts);
+      for (auto & v1: in) {
+        TLorentzVector tv1;
+        tv1.SetXYZM(v1.core.p4.px, v1.core.p4.py, v1.core.p4.pz, v1.core.p4.mass);
+        recoil_p4 -= tv1;
+      }
+      auto recoil_fcc = fcc::LorentzVector();
+      recoil_fcc.px = recoil_p4.Px();
+      recoil_fcc.py = recoil_p4.Py();
+      recoil_fcc.pz = recoil_p4.Pz();
+      recoil_fcc.mass = recoil_p4.M();
+      result.push_back(recoil_fcc);
+      return result;
+  }
+
+};
+
+
+ROOT::RDF::RNode recoil_add_to_dataframe( dataframe_arg_type2 df, std::string input_column, std::string output_column, float sqrts=240.0) {
+  return df.Define(output_column, recoil(sqrts), {input_column});
 }
 
-auto recoil_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string output_column) {
-  return df.Define(output_column, recoil, {input_column});
-}
+struct selectLeptons {
 
-std::vector<fcc::ParticleData>  selectLeptons (std::vector<fcc::ParticleData> in, std::vector<fcc::TaggedParticleData> iso) {
-  std::vector<fcc::ParticleData> result;
-  result.reserve(in.size());
-  for (size_t i = 0; i < in.size(); ++i) {
-    auto & p = in[i];
-    if (std::sqrt(std::pow(p.core.p4.px,2) + std::pow(p.core.p4.py,2)) > 20) {
-      if (iso[i].tag  < 0.4) {
-        result.emplace_back(p);
+
+  selectLeptons(float arg_min_pt, float arg_max_iso) : m_min_pt(arg_min_pt), m_max_iso(arg_max_iso) {};
+
+  float m_min_pt = 20;
+  float m_max_iso = 0.4;
+
+  std::vector<fcc::ParticleData>  operator() (std::vector<fcc::ParticleData> in, std::vector<fcc::TaggedParticleData> iso) {
+    std::vector<fcc::ParticleData> result;
+    result.reserve(in.size());
+    for (size_t i = 0; i < in.size(); ++i) {
+      auto & p = in[i];
+      if (std::sqrt(std::pow(p.core.p4.px,2) + std::pow(p.core.p4.py,2)) > m_min_pt) {
+        if (iso[i].tag  < m_max_iso) {
+          result.emplace_back(p);
+        }
       }
     }
+    return result;
   }
-  return result;
+
+};
+
+
+ROOT::RDF::RNode initial_add_to_dataframe( dataframe_arg_type df, std::string output, std::string func) {
+  return df.Define(output, func);
 }
 
-ROOT::RDF::RNode select_leptons_add_to_dataframe( ROOT::RDF::RInterface<ROOT::Detail::RDF::RLoopManager, void> df, std::string input_column, std::string input_column_iso, std::string output_column) {
-  return df.Define(output_column, selectLeptons, {input_column, input_column_iso});
+ROOT::RDF::RNode initial_dataframe_convert( dataframe_arg_type df) {
+  return df;
+}
+
+
+ROOT::RDF::RNode select_leptons_add_to_dataframe( dataframe_arg_type2 df, std::string input_column, std::string input_column_iso, std::string output_column, float min_pt=20., float max_iso=0.2) {
+  return df.Define(output_column, selectLeptons(min_pt, max_iso), {input_column, input_column_iso});
 }
 
 std::vector<fcc::JetData> selectJetsBs (std::vector<fcc::JetData> in, std::vector<fcc::TaggedJetData> btags) {
@@ -110,30 +142,35 @@ auto selectJetsLights_add_to_dataframe( ROOT::RDataFrame& df, std::string input_
   return df.Define(output_column, selectJetsLights, {input_column, input_column_btags});
 }
 
-std::vector<fcc::JetData> noMatchJets (std::vector<fcc::JetData> in, std::vector<fcc::ParticleData> matchParticles, float max_rel_iso) {
-  std::vector<fcc::JetData> result;
-  result.reserve(in.size());
-  for (size_t i = 0; i < in.size(); ++i) {
-    auto & p = in[i];
-    bool matched = false;
-    for (size_t j = 0; j < matchParticles.size(); ++j) {
-      auto & matchCandidate = matchParticles[j];
-      if (deltaR(p.core.p4, matchCandidate.core.p4) < max_rel_iso) {
-        matched = true;
+struct noMatchJets {
+  // constructor
+  noMatchJets(float arg_max_rel_iso) {m_max_rel_iso = arg_max_rel_iso;};
+
+  float m_max_rel_iso;
+
+  std::vector<fcc::JetData> operator() (std::vector<fcc::JetData> in, std::vector<fcc::ParticleData> matchParticles) {
+    std::vector<fcc::JetData> result;
+    result.reserve(in.size());
+    for (size_t i = 0; i < in.size(); ++i) {
+      auto & p = in[i];
+      bool matched = false;
+      for (size_t j = 0; j < matchParticles.size(); ++j) {
+        auto & matchCandidate = matchParticles[j];
+        if (deltaR(p.core.p4, matchCandidate.core.p4) < m_max_rel_iso) {
+          matched = true;
+        }
+      }
+      if (matched == false) {
+        result.emplace_back(p);
       }
     }
-    if (matched == false) {
-      result.emplace_back(p);
-    }
+    return result;
   }
-  return result;
-}
+};
 
 
 auto noMatchJets_add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string input_column_matchParticles, std::string output_column, float  max_rel_iso) {
-
-  auto noMatchJets_02 =  [&] (std::vector<fcc::JetData> in, std::vector<fcc::ParticleData> matchParticles) {return noMatchJets(in, matchParticles, max_rel_iso);};
-  return df.Define(output_column, noMatchJets_02 , {input_column, input_column_matchParticles});
+  return df.Define(output_column, noMatchJets(max_rel_iso) , {input_column, input_column_matchParticles});
 }
 
 std::vector<float> get_pt(std::vector<fcc::ParticleData> in){
@@ -280,7 +317,7 @@ int get_njets2(std::vector<fcc::JetData> x, std::vector<fcc::JetData> y) {
   return result;
 }
 
-auto add_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string output_column) {
+auto add_njets2_to_dataframe( ROOT::RDataFrame& df, std::string input_column, std::string output_column) {
   return df.Define(output_column, get_njets2, {input_column});
 }
 
@@ -327,17 +364,18 @@ int main(int argc, char* argv[]){
 
 
 
-  auto noMatchJets_02 =  [&] (std::vector<fcc::JetData> in, std::vector<fcc::ParticleData> matchParticles) {return noMatchJets(in, matchParticles, 0.2);};
+  //auto noMatchJets_02 =  [&] (std::vector<fcc::JetData> in, std::vector<fcc::ParticleData> matchParticles) {return noMatchJets(in, matchParticles, 0.2);};
+  auto noMatchJets_02 = noMatchJets(0.2);
 
 
 
    std::cout << "Apply selectors and define new branches ..." << std::endl;
    auto selectors =  df
-                      .Define("selected_electrons", selectLeptons, {"electrons", "electronITags"})
-                      .Define("selected_muons", selectLeptons, {"muons", "muonITags"})
+                      .Define("selected_electrons", selectLeptons(20, 0.4), {"electrons", "electronITags"})
+                      .Define("selected_muons", selectLeptons(20, 0.4), {"muons", "muonITags"})
                       .Define("selected_leptons", mergeElectronsAndMuons, {"selected_electrons", "selected_muons"})
                       .Define("zeds", LeptonicZBuilder, {"selected_leptons"})
-                      .Define("recoil", recoil, {"zeds"})
+                      .Define("recoil", recoil(240.0), {"zeds"})
                       .Define("selected_leptons_pt", get_pt, {"selected_leptons"})
                       .Define("zeds_pt", get_pt, {"zeds"})
                       .Define("higgs", LeptonicHiggsBuilder, {"zeds"})
